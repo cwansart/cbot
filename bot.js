@@ -126,6 +126,15 @@ bot.on('message', function(user, userId, channelId, message, event) {
         });
       }
       break;
+	  
+	  case 'wo':
+	  case 'where': {
+		bot.sendMessage({
+		  to: channelId,
+		  `In Sid Meier’s Civilization 5`
+		});
+	  }
+	  break;
     }
   }
 });
