@@ -113,11 +113,11 @@ bot.on('message', function(user, userId, channelId, message, event) {
       break;
 
       case 'wann': {
-        const date = dateFormat(new Date(), 'h:MM');
+        const date = dateFormat(new Date(), 'H:MM');
         let message = `Es ist ${date}. :-)`;
 
         if (whoWasLast !== null) {
-          message = `Es ist ${date}, und <@${nameMap[whoWasLast]}> hat immer noch nicht gespielt... ¯\_(ツ)_/¯`
+          message = `Es ist ${date}, und <@${nameMap[whoWasLast]}> hat immer noch nicht gespielt... ¯\\\_(ツ)_/¯`
         }
 
         bot.sendMessage({
