@@ -35,6 +35,7 @@ bot.on('ready', function() {
   logger.info(bot.username + ' - (' + bot.id + ')');
 
   logger.info('Start periodical check');
+  const oneMinute = 60000;
   setInterval(function() {
     getGameData((whoseTurn) => {
       const now = new Date();
@@ -54,7 +55,7 @@ bot.on('ready', function() {
         });
       }
     });
-  }, 60000 * config.checkInterval);
+  }, (oneMinute * config.checkInterval));
 });
 
 bot.on('message', function(user, userId, channelId, message, event) {
@@ -62,9 +63,6 @@ bot.on('message', function(user, userId, channelId, message, event) {
     logger.info(`Ignoring received message from channel ${channelId}. Ignoring it.`);
     return;
   }
-
-  logger.info(`typeof channelId: ${typeof channelId}, ${channelId}`);
-  logger.info(`typeof config.channelId: ${typeof config.channelId}, ${config.channelId}`);
 
   if (message.substring(0, 1) === '!') {
     let args = message.substring(1).split(' ');
@@ -77,8 +75,8 @@ bot.on('message', function(user, userId, channelId, message, event) {
           to: channelId,
           message: 'pong'
         });
-        break;
       }
+      break;
 
       case 'mutter':
       case 'deineMutter':
@@ -89,8 +87,8 @@ bot.on('message', function(user, userId, channelId, message, event) {
           to: channelId,
           message: jokes[rand]
         });
-        break;
       }
+      break;
 
       case 'wer':
       case 'who': {
@@ -111,9 +109,8 @@ bot.on('message', function(user, userId, channelId, message, event) {
             message: 'Meh... Da hat was nicht hingehauen :('
           });
         });
-
-        break;
       }
+      break;
 
       case 'wann': {
         const date = dateFormat(new Date(), 'h:MM');
@@ -127,9 +124,8 @@ bot.on('message', function(user, userId, channelId, message, event) {
           to: channelId,
           message 
         });
-
-        break;
       }
+      break;
     }
   }
 });
@@ -146,8 +142,8 @@ var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
   };
 
   const req = http.request(options, (res) => {
-    logger.info(`STATUS: ${res.statusCode}`);
-    logger.info(`HEADERS: ${JSON.stringify(res.headers)}`);
+    logger.debug(`STATUS: ${res.statusCode}`);
+    logger.debug(`HEADERS: ${JSON.stringify(res.headers)}`);
 
     let whoseTurn = null;
     res.setEncoding('utf8');
