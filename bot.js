@@ -46,12 +46,10 @@ bot.on('ready', function() {
       }
 
       if (whoseTurn !== whoWasLast || diff.hours() >= 1) {
-        getGameData((whoseTurn) => {
-          whoWasLast = whoseTurn;
-          bot.sendMessage({
-            to: config.channelId,
-            message: `<@${nameMap[whoseTurn]}> ist am Zug!`
-          });
+        whoWasLast = whoseTurn;
+        bot.sendMessage({
+          to: config.channelId,
+          message: `<@${nameMap[whoseTurn]}> ist am Zug!`
         });
       }
     });
