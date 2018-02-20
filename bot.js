@@ -81,10 +81,31 @@ bot.on('message', function(user, userId, channelId, message, event) {
       case 'witz':
       case 'joke': {
         const rand = Math.round(Math.random() * jokes.length);
-        bot.sendMessage({
-          to: channelId,
-          message: jokes[rand]
-        });
+        var joke = jokes[rand]
+        if (!args[0]) {
+          bot.sendMessage({
+            to: channelId,
+            message: joke
+          });
+        } else if (args[0].substring(0, 2) === '<@') {
+          if (joke && joke.substring(0, 12) === 'Deine Mutter') {
+            joke = joke.replace('Deine Mutter', args[0]);
+            joke = joke.replace('ihr', 'sein');
+            joke = joke.replace('sie', 'er');
+            joke = joke.replace('er hätten', 'sie hätten'); // fixing issue with one joke
+            bot.sendMessage({
+              to: channelId,
+              message: joke
+            });
+          } else {
+            bot.sendMessage({
+              to: channelId,
+              message: args[0] + ': ' + joke
+            });
+          }
+        }
+        
+        
       }
       break;
 
