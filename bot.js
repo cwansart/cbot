@@ -21,6 +21,9 @@ logger.remove(logger.transports.Console);
 logger.add(logger.transports.Console, {
   colorize: true
 });
+logger.add(logger.transports.File, {
+  filename: 'cbot.log'
+});
 logger.level = 'debug';
 
 // now the bot stuff
@@ -30,6 +33,8 @@ var bot = new Discord.Client({
 });
 
 bot.on('ready', function() {
+  bot.setPresence({game: {name: 'mit deiner Mutter'}});
+
   logger.info('Connected');
   logger.info('Logged in as: ');
   logger.info(bot.username + ' - (' + bot.id + ')');
@@ -57,10 +62,14 @@ bot.on('ready', function() {
 });
 
 bot.on('message', function(user, userId, channelId, message, event) {
+  logger.debug(`Calling onMessage; user: ${user}, userId: ${userId}, channelId: ${channelId}, message: ${message}`);
+
+  /*
   if (channelId != config.channelId) {
     logger.info(`Ignoring received message from channel ${channelId}. Ignoring it.`);
     return;
   }
+  */
 
   if (message.substring(0, 1) === '!') {
     let args = message.substring(1).split(' ');
@@ -156,6 +165,10 @@ bot.on('message', function(user, userId, channelId, message, event) {
       break;
     }
   }
+});
+
+bot.on('disconnect', function() {
+  logger.warn(`Bot has been disconnected at ${new Date()}`); 
 });
 
 // fetches the game data and runs onSuccess callback if succuessful, onFailure otherwise
