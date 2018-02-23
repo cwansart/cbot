@@ -28,7 +28,7 @@ logger.level = 'debug';
 
 // now the bot stuff
 let bot = new Discord.Client({
-  token: auth.token,
+  token: auth.token.discord,
   autorun: true
 });
 

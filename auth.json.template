@@ -1,3 +1,6 @@
 {
-  "token": "PUT HERE THE BOT TOKEN"
+  "token": {
+    "discord": "PUT HERE THE BOT TOKEN",
+    "gmr": "PUT HERE THE GMR TOKEN"
+  }
 }
