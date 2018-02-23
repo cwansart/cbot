@@ -1,16 +1,16 @@
 "use strict";
 
-var auth = require('./auth.json');
-var cheerio = require('cheerio');
-var config = require('./config.json');
-var DateDiff = require('date-diff');
-var dateFormat = require('dateformat');
-var Discord = require('discord.io');
-var http = require('http');
-var jokes = require('./jokes.json');
-var logger = require('winston');
-var nameMap = require('./name-map.json');
-var onExit = require('signal-exit');
+const auth = require('./auth.json');
+const cheerio = require('cheerio');
+const config = require('./config.json');
+const DateDiff = require('date-diff');
+const dateFormat = require('dateformat');
+const Discord = require('discord.io');
+const http = require('http');
+const jokes = require('./jokes.json');
+const logger = require('winston');
+const nameMap = require('./name-map.json');
+const onExit = require('signal-exit');
 
 // global variables
 let whoWasLast = null;
@@ -27,7 +27,7 @@ logger.add(logger.transports.File, {
 logger.level = 'debug';
 
 // now the bot stuff
-var bot = new Discord.Client({
+let bot = new Discord.Client({
   token: auth.token,
   autorun: true
 });
@@ -90,7 +90,7 @@ bot.on('message', function(user, userId, channelId, message, event) {
       case 'witz':
       case 'joke': {
         const rand = Math.round(Math.random() * jokes.length);
-        var joke = jokes[rand]
+        let joke = jokes[rand];
         if (!args[0]) {
           bot.sendMessage({
             to: channelId,
@@ -212,7 +212,7 @@ var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
 
   req.write("");
   req.end();
-}
+};
 
 // ensure that the bot disconnects immediately
 onExit(function (code, signal) {
