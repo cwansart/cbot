@@ -1,20 +1,30 @@
 "use strict";
 
-const auth = require('./auth.json');
-const cheerio = require('cheerio');
-const config = require('./config.json');
+// library includes
 const DateDiff = require('date-diff');
 const dateFormat = require('dateformat');
 const Discord = require('discord.io');
 const http = require('http');
-const jokes = require('./jokes.json');
 const logger = require('winston');
-const nameMap = require('./name-map.json');
 const onExit = require('signal-exit');
+
+// file includes
+const auth = require('./auth.json');
+const config = require('./config.json');
+const jokes = require('./jokes.json');
+const map = require('./map.json');
+
+// global constants
+const playerIdKeys = Object.keys(map).join('_');
 
 // global variables
 let whoWasLast = null;
 let lastPostDate = new Date();
+
+// global aliases
+var nothing = () => {
+};
+var nothingOnFailure = nothing;
 
 // prepare logging
 logger.remove(logger.transports.Console);
@@ -32,7 +42,7 @@ let bot = new Discord.Client({
   autorun: true
 });
 
-bot.on('ready', function() {
+bot.on('ready', function () {
   bot.setPresence({game: {name: 'mit deiner Mutter'}});
 
   logger.info('Connected');
@@ -41,27 +51,27 @@ bot.on('ready', function() {
 
   logger.info('Start periodical check');
   const oneMinute = 60000;
-  setInterval(function() {
-    getGameData((whoseTurn) => {
+  setInterval(function () {
+    getGameData((currentPlayer) => {
       const now = new Date();
       const diff = new DateDiff(lastPostDate, now);
 
-      if (whoseTurn !== whoWasLast) {
+      if (currentPlayer !== whoWasLast) {
         lastPostDate = now;
       }
 
-      if (whoseTurn !== whoWasLast || diff.hours() >= 1) {
-        whoWasLast = whoseTurn;
+      if (currentPlayer !== whoWasLast || diff.hours() >= 1) {
+        whoWasLast = currentPlayer;
         bot.sendMessage({
           to: config.channelId,
-          message: `<@${nameMap[whoseTurn]}> ist am Zug!`
+          message: `<@${map[currentPlayer]}> ist am Zug!`
         });
       }
     });
   }, (oneMinute * config.checkInterval));
 });
 
-bot.on('message', function(user, userId, channelId, message, event) {
+bot.on('message', function (user, userId, channelId, message, event) {
   logger.debug(`Calling onMessage; user: ${user}, userId: ${userId}, channelId: ${channelId}, message: ${message}`);
 
   /*
@@ -74,16 +84,14 @@ bot.on('message', function(user, userId, channelId, message, event) {
   if (message.substring(0, 1) === '!') {
     let args = message.substring(1).split(' ');
     const cmd = args[0];
-    args = args.splice(1);
-
     switch (cmd) {
       case 'ping': {
         bot.sendMessage({
           to: channelId,
           message: 'pong'
         });
+        break;
       }
-      break;
 
       case 'mutter':
       case 'deineMutter':
@@ -98,10 +106,10 @@ bot.on('message', function(user, userId, channelId, message, event) {
           });
         } else if (args[0].substring(0, 2) === '<@') {
           if (joke && joke.substring(0, 12) === 'Deine Mutter') {
-            joke = joke.replace('Deine Mutter', args[0]);
-            joke = joke.replace('ihr', 'sein');
-            joke = joke.replace('sie', 'er');
-            joke = joke.replace('er hätten', 'sie hätten'); // fixing issue with one joke
+            joke = joke.replace('Deine Mutter', args[0])
+              .replace('ihr', 'sein')
+              .replace('sie', 'er')
+              .replace('er hätten', 'sie hätten'); // fixing issue with one joke
             bot.sendMessage({
               to: channelId,
               message: joke
@@ -113,10 +121,8 @@ bot.on('message', function(user, userId, channelId, message, event) {
             });
           }
         }
-        
-        
+        break;
       }
-      break;
 
       case 'wer':
       case 'who': {
@@ -124,12 +130,12 @@ bot.on('message', function(user, userId, channelId, message, event) {
           to: channelId,
           message: 'Moment, ich schau mal nach...'
         });
-        
-        getGameData((whoseTurn) => {
-          whoWasLast = whoseTurn;
+
+        getGameData((currentPlayer) => {
+          whoWasLast = currentPlayer;
           bot.sendMessage({
             to: channelId,
-            message: `<@${nameMap[whoseTurn]}> ist am Zug!`
+            message: `<@${map[currentPlayer]}> ist am Zug!`
           });
         }, () => {
           bot.sendMessage({
@@ -137,38 +143,40 @@ bot.on('message', function(user, userId, channelId, message, event) {
             message: 'Meh... Da hat was nicht hingehauen :('
           });
         });
+        break;
       }
-      break;
 
       case 'wann': {
         const date = dateFormat(new Date(), 'H:MM');
         let message = `Es ist ${date}. :-)`;
 
         if (whoWasLast !== null) {
-          message = `Es ist ${date}, und <@${nameMap[whoWasLast]}> hat immer noch nicht gespielt... ¯\\\_(ツ)_/¯`
+          message = `Es ist ${date}, und <@${map[whoWasLast]}> hat immer noch nicht gespielt... ¯\\\_(ツ)_/¯`
         }
 
         bot.sendMessage({
           to: channelId,
-          message 
+          message
         });
+        break;
       }
-      break;
-      
+
       case 'wo':
       case 'where': {
         bot.sendMessage({
           to: channelId,
           message: `In Sid Meier’s Civilization 5`
         });
+        break;
       }
-      break;
     }
+
+    args = args.splice(1);
   }
 });
 
-bot.on('disconnect', function() {
-  logger.warn(`Bot has been disconnected at ${new Date()}`); 
+bot.on('disconnect', function () {
+  logger.warn(`Bot has been disconnected at ${new Date()}`);
 });
 
 // fetches the game data and runs onSuccess callback if succuessful, onFailure otherwise
@@ -176,9 +184,10 @@ var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
   const options = {
     hostname: 'multiplayerrobot.com',
     port: 80,
-    path: '/Game/Details?id=' + config.gameId,
-    method: 'POST',
+    path: '/api/Diplomacy/GetGamesAndPlayers?playerIDText=' + playerIdKeys + '&authKey=' + auth.token.gmr,
+    method: 'GET',
     headers: {
+      "Accept": "application/json"
     }
   };
 
@@ -186,21 +195,18 @@ var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
     logger.debug(`STATUS: ${res.statusCode}`);
     logger.debug(`HEADERS: ${JSON.stringify(res.headers)}`);
 
-    let whoseTurn = null;
+    let data = [];
     res.setEncoding('utf8');
     res.on('data', (chunk) => {
-      const ch = cheerio.load(chunk);
-      const whoseTurnTemp = ch('.avatar.game-avatar.tooltip').attr('alt');
-
-      if (whoseTurnTemp !== undefined) {
-        whoseTurn = whoseTurnTemp;
-      }
+      data.push(chunk);
     });
     res.on('end', () => {
       logger.info('No more data in response.');
-      if (whoseTurn !== null) {
-        onSuccess(whoseTurn);
-      } else {
+
+      try {
+        const response = JSON.parse(data.join(''));
+        onSuccess(response.Games[0].CurrentTurn.UserId);
+      } catch(e) {
         onFailure();
       }
     });
@@ -219,7 +225,3 @@ onExit(function (code, signal) {
   logger.info('Shutting process down...');
   bot.disconnect();
 });
-
-// to use a name instead of an empty function as callbacks
-var nothing = () => {};
-var nothingOnFailure = nothing;
