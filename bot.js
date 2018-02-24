@@ -175,8 +175,8 @@ bot.on('message', function (user, userId, channelId, message, event) {
   }
 });
 
-bot.on('disconnect', function () {
-  logger.warn(`Bot has been disconnected at ${new Date()}`);
+bot.on('disconnect', function (event) {
+  logger.warn(`Bot has been disconnected at ${new Date()}: ${JSON.stringify(event)}`);
 });
 
 // fetches the game data and runs onSuccess callback if succuessful, onFailure otherwise
