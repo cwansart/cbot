@@ -99,14 +99,14 @@ bot.on('message', function (user, userId, channelId, message, event) {
       case 'joke': {
         const rand = Math.round(Math.random() * jokes.length);
         let joke = jokes[rand];
-        if (!args[0]) {
+        if (!args[1]) {
           bot.sendMessage({
             to: channelId,
             message: joke
           });
-        } else if (args[0].substring(0, 2) === '<@') {
+        } else if (args[1].substring(0, 2) === '<@') {
           if (joke && joke.substring(0, 12) === 'Deine Mutter') {
-            joke = joke.replace('Deine Mutter', args[0])
+            joke = joke.replace('Deine Mutter', args[1])
               .replace('ihr', 'sein')
               .replace('sie', 'er')
               .replace('er hätten', 'sie hätten'); // fixing issue with one joke
@@ -117,7 +117,7 @@ bot.on('message', function (user, userId, channelId, message, event) {
           } else {
             bot.sendMessage({
               to: channelId,
-              message: args[0] + ': ' + joke
+              message: args[1] + ': ' + joke
             });
           }
         }
@@ -191,7 +191,7 @@ var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
     }
   };
 
-  const req = http.request(options, (res) => {
+  const req = http.request(options, (res) => {gi
     logger.debug(`STATUS: ${res.statusCode}`);
     logger.debug(`HEADERS: ${JSON.stringify(res.headers)}`);
 
