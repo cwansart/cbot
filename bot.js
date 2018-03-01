@@ -20,6 +20,7 @@ const playerIdKeys = Object.keys(map).join('_');
 // global variables
 let whoWasLast = null;
 let lastPostDate = new Date();
+let checkInterval = null;
 
 // global aliases
 var nothing = () => {
@@ -51,7 +52,7 @@ bot.on('ready', function () {
 
   logger.info('Start periodical check');
   const oneMinute = 60000;
-  setInterval(function () {
+  checkInterval = setInterval(function () {
     getGameData((currentPlayer) => {
       const now = new Date();
       const diff = new DateDiff(lastPostDate, now);
@@ -84,6 +85,7 @@ bot.on('message', function (user, userId, channelId, message, event) {
   if (message.substring(0, 1) === '!') {
     let args = message.substring(1).split(' ');
     const cmd = args[0];
+    args = args.splice(1);
     switch (cmd) {
       case 'ping': {
         bot.sendMessage({
@@ -99,14 +101,14 @@ bot.on('message', function (user, userId, channelId, message, event) {
       case 'joke': {
         const rand = Math.round(Math.random() * jokes.length);
         let joke = jokes[rand];
-        if (!args[1]) {
+        if (!args[0]) {
           bot.sendMessage({
             to: channelId,
             message: joke
           });
-        } else if (args[1].substring(0, 2) === '<@') {
+        } else if (args[0].substring(0, 2) === '<@') {
           if (joke && joke.substring(0, 12) === 'Deine Mutter') {
-            joke = joke.replace('Deine Mutter', args[1])
+            joke = joke.replace('Deine Mutter', args[0])
               .replace('ihr', 'sein')
               .replace('sie', 'er')
               .replace('er hätten', 'sie hätten'); // fixing issue with one joke
@@ -117,7 +119,7 @@ bot.on('message', function (user, userId, channelId, message, event) {
           } else {
             bot.sendMessage({
               to: channelId,
-              message: args[1] + ': ' + joke
+              message: args[0] + ': ' + joke
             });
           }
         }
@@ -170,13 +172,14 @@ bot.on('message', function (user, userId, channelId, message, event) {
         break;
       }
     }
-
-    args = args.splice(1);
   }
 });
 
-bot.on('disconnect', function (event) {
-  logger.warn(`Bot has been disconnected at ${new Date()}: ${JSON.stringify(event)}`);
+bot.on('disconnect', function(erMsg, code) {
+  logger.warn(`Bot has been disconnected at ${new Date()}: ${erMsg} (${code})`);
+  clearInterval(checkInterval);
+  checkInterval = null;
+  bot.connect();
 });
 
 // fetches the game data and runs onSuccess callback if succuessful, onFailure otherwise
@@ -191,7 +194,7 @@ var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
     }
   };
 
-  const req = http.request(options, (res) => {gi
+  const req = http.request(options, (res) => {
     logger.debug(`STATUS: ${res.statusCode}`);
     logger.debug(`HEADERS: ${JSON.stringify(res.headers)}`);
 
