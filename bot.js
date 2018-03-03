@@ -25,11 +25,6 @@ let timeInterval = null;
 let timeExponent = null;
 let roundStarted = null;
 
-// global aliases
-const nothing = () => {
-};
-const nothingOnFailure = nothing;
-
 // Extend the Date prototype
 Date.prototype.addHours = function(h) {    
   this.setTime(this.getTime() + (h*60*60*1000)); 
@@ -257,7 +252,7 @@ bot.on('disconnect', function(erMsg, code) {
 });
 
 // fetches the game data and runs onSuccess callback if successful, onFailure otherwise
-const getGameData = (onSuccess, onFailure = nothingOnFailure) => {
+const getGameData = (onSuccess, onFailure) => {
   const options = {
     hostname: 'multiplayerrobot.com',
     port: 80,
@@ -281,7 +276,9 @@ const getGameData = (onSuccess, onFailure = nothingOnFailure) => {
         const response = JSON.parse(data.join(''));
         onSuccess(response.Games[0].CurrentTurn.UserId, response.Games[0].CurrentTurn.Started);
       } catch(e) {
-        onFailure();
+        if (onFailure instanceof Function) {
+          onFailure();
+        }
       }
     });
   });
