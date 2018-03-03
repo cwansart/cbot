@@ -21,11 +21,18 @@ const playerIdKeys = Object.keys(map).join('_');
 let whoWasLast = null;
 let lastPostDate = new Date();
 let checkInterval = null;
+let timeInterval = null;
+let timeExponent = null;
+let roundStarted = null;
 
 // global aliases
 var nothing = () => {
 };
 var nothingOnFailure = nothing;
+Date.prototype.addHours = function(h) {    
+   this.setTime(this.getTime() + (h*60*60*1000)); 
+   return this;   
+}
 
 // prepare logging
 logger.remove(logger.transports.Console);
@@ -53,9 +60,10 @@ bot.on('ready', function () {
   logger.info('Start periodical check');
   const oneMinute = 60000;
   checkInterval = setInterval(function () {
-    getGameData((currentPlayer) => {
+    getGameData((currentPlayer, started) => {
       const now = new Date();
-      const diff = new DateDiff(lastPostDate, now);
+      const diff = new DateDiff(lastPostDate, now)
+      roundStarted = started;
 
       if (currentPlayer !== whoWasLast) {
         lastPostDate = now;
@@ -63,6 +71,7 @@ bot.on('ready', function () {
 
       if (currentPlayer !== whoWasLast || diff.hours() >= 1) {
         whoWasLast = currentPlayer;
+        timeExponent = 0;
         bot.sendMessage({
           to: config.channelId,
           message: `<@${map[currentPlayer]}> ist am Zug!`
@@ -70,6 +79,38 @@ bot.on('ready', function () {
       }
     });
   }, (oneMinute * config.checkInterval));
+  logger.info('Start periodical time check');
+  // Send message every 2^x hours (1, 2, 4, 8, ...)
+  timeInterval = setInterval(function () {
+    if (timeExponent !== null) {
+      // Calculate difference since last round
+      const now = new Date();
+      let lastRound = new Date(roundStarted);
+      lastRound.addHours(1);
+      const diff = new DateDiff(now, lastRound);
+
+      // Increase timeExponent if difference bigger than 2^timeExponent. Used mainly at the start
+      if (diff.hours() > Math.pow(2, timeExponent+1)) {
+        timeExponent += 1;
+      } else {
+        // Check if next message should be displayed
+        if (diff.hours() >= Math.pow(2, timeExponent)) {
+          let time = ``;
+          // Set correct time phrase
+          if (diff.hours() >= 2) {
+            time = `${Math.pow(2, timeExponent)} Stunden`;
+          } else {
+            time = `1 Stunde`;
+          }
+          timeExponent += 1;
+          bot.sendMessage({
+            to: config.channelId,
+            message: `Die letzte Runde ist über **${time}** her und <@${map[whoWasLast]}> hat immer noch nicht gespielt... ¯\\\_(ツ)_/¯`
+          });
+        }
+      }
+    }
+  }, oneMinute);
 });
 
 bot.on('message', function (user, userId, channelId, message, event) {
@@ -133,7 +174,8 @@ bot.on('message', function (user, userId, channelId, message, event) {
           message: 'Moment, ich schau mal nach...'
         });
 
-        getGameData((currentPlayer) => {
+        getGameData((currentPlayer, started) => {
+          roundStarted = started;
           whoWasLast = currentPlayer;
           bot.sendMessage({
             to: channelId,
@@ -148,12 +190,37 @@ bot.on('message', function (user, userId, channelId, message, event) {
         break;
       }
 
-      case 'wann': {
-        const date = dateFormat(new Date(), 'H:MM');
-        let message = `Es ist ${date}. :-)`;
-
+      case 'wann':
+      case 'when': {
+        const now = new Date();
+        let lastRound = new Date(roundStarted);
+        logger.info(`lastRound: ${lastRound}`);
+        let message = `Es ist ${dateFormat(now, 'H:MM')}. :-)`;
+        lastRound.addHours(1);
+        let diff = new DateDiff(now, lastRound);
+        
+        let time = ``;
+        let hours = Math.floor(diff.hours());
+        let minutes = Math.floor(diff.minutes() - (hours * 60));
+        if (minutes < 0) { minutes = 0 };
+        
+        // Set time string to correct local phrase
+        if (hours === 1) {
+          time += `1 Stunde`;
+        } else if (hours > 1) {
+          time += `${hours} Stunden`
+        }
+        if (hours > 0) {
+          time += ` und `
+        }
+        if (minutes === 1) {
+          time += `1 Minute`
+        } else {
+          time += `${minutes} Minuten`
+        }
+        
         if (whoWasLast !== null) {
-          message = `Es ist ${date}, und <@${map[whoWasLast]}> hat immer noch nicht gespielt... ¯\\\_(ツ)_/¯`
+          message = `Die letzte Runde ist **${time}** her und <@${map[whoWasLast]}> hat immer noch nicht gespielt... ¯\\\_(ツ)_/¯`
         }
 
         bot.sendMessage({
@@ -178,11 +245,13 @@ bot.on('message', function (user, userId, channelId, message, event) {
 bot.on('disconnect', function(erMsg, code) {
   logger.warn(`Bot has been disconnected at ${new Date()}: ${erMsg} (${code})`);
   clearInterval(checkInterval);
+  clearInterval(timeInterval);
   checkInterval = null;
+  timeInterval = null;
   bot.connect();
 });
 
-// fetches the game data and runs onSuccess callback if succuessful, onFailure otherwise
+// fetches the game data and runs onSuccess callback if successful, onFailure otherwise
 var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
   const options = {
     hostname: 'multiplayerrobot.com',
@@ -208,7 +277,7 @@ var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
 
       try {
         const response = JSON.parse(data.join(''));
-        onSuccess(response.Games[0].CurrentTurn.UserId);
+        onSuccess(response.Games[0].CurrentTurn.UserId, response.Games[0].CurrentTurn.Started);
       } catch(e) {
         onFailure();
       }
