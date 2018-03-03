@@ -26,13 +26,15 @@ let timeExponent = null;
 let roundStarted = null;
 
 // global aliases
-var nothing = () => {
+const nothing = () => {
 };
-var nothingOnFailure = nothing;
+const nothingOnFailure = nothing;
+
+// Extend the Date prototype
 Date.prototype.addHours = function(h) {    
-   this.setTime(this.getTime() + (h*60*60*1000)); 
-   return this;   
-}
+  this.setTime(this.getTime() + (h*60*60*1000)); 
+  return this;   
+};
 
 // prepare logging
 logger.remove(logger.transports.Console);
@@ -62,7 +64,7 @@ bot.on('ready', function () {
   checkInterval = setInterval(function () {
     getGameData((currentPlayer, started) => {
       const now = new Date();
-      const diff = new DateDiff(lastPostDate, now)
+      const diff = new DateDiff(lastPostDate, now);
       roundStarted = started;
 
       if (currentPlayer !== whoWasLast) {
@@ -80,6 +82,7 @@ bot.on('ready', function () {
     });
   }, (oneMinute * config.checkInterval));
   logger.info('Start periodical time check');
+
   // Send message every 2^x hours (1, 2, 4, 8, ...)
   timeInterval = setInterval(function () {
     if (timeExponent !== null) {
@@ -113,7 +116,7 @@ bot.on('ready', function () {
   }, oneMinute);
 });
 
-bot.on('message', function (user, userId, channelId, message, event) {
+bot.on('message', function (user, userId, channelId, message) {
   logger.debug(`Calling onMessage; user: ${user}, userId: ${userId}, channelId: ${channelId}, message: ${message}`);
 
   /*
@@ -202,25 +205,27 @@ bot.on('message', function (user, userId, channelId, message, event) {
         let time = ``;
         let hours = Math.floor(diff.hours());
         let minutes = Math.floor(diff.minutes() - (hours * 60));
-        if (minutes < 0) { minutes = 0 };
+        if (minutes < 0) {
+          minutes = 0;
+        }
         
         // Set time string to correct local phrase
         if (hours === 1) {
-          time += `1 Stunde`;
+          time += '1 Stunde';
         } else if (hours > 1) {
-          time += `${hours} Stunden`
+          time += `${hours} Stunden`;
         }
         if (hours > 0) {
-          time += ` und `
+          time += ' und ';
         }
         if (minutes === 1) {
-          time += `1 Minute`
+          time += '1 Minute';
         } else {
-          time += `${minutes} Minuten`
+          time += `${minutes} Minuten`;
         }
         
         if (whoWasLast !== null) {
-          message = `Die letzte Runde ist **${time}** her und <@${map[whoWasLast]}> hat immer noch nicht gespielt... ¯\\\_(ツ)_/¯`
+          message = `Die letzte Runde ist **${time}** her und <@${map[whoWasLast]}> hat immer noch nicht gespielt... ¯\\\_(ツ)_/¯`;
         }
 
         bot.sendMessage({
@@ -234,7 +239,7 @@ bot.on('message', function (user, userId, channelId, message, event) {
       case 'where': {
         bot.sendMessage({
           to: channelId,
-          message: `In Sid Meier’s Civilization 5`
+          message: 'In Sid Meier’s Civilization 5'
         });
         break;
       }
@@ -252,11 +257,11 @@ bot.on('disconnect', function(erMsg, code) {
 });
 
 // fetches the game data and runs onSuccess callback if successful, onFailure otherwise
-var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
+const getGameData = (onSuccess, onFailure = nothingOnFailure) => {
   const options = {
     hostname: 'multiplayerrobot.com',
     port: 80,
-    path: '/api/Diplomacy/GetGamesAndPlayers?playerIDText=' + playerIdKeys + '&authKey=' + auth.token.gmr,
+    path: `/api/Diplomacy/GetGamesAndPlayers?playerIDText=${playerIdKeys}&authKey=${auth.token.gmr}`,
     method: 'GET',
     headers: {
       "Accept": "application/json"
@@ -264,9 +269,6 @@ var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
   };
 
   const req = http.request(options, (res) => {
-    logger.debug(`STATUS: ${res.statusCode}`);
-    logger.debug(`HEADERS: ${JSON.stringify(res.headers)}`);
-
     let data = [];
     res.setEncoding('utf8');
     res.on('data', (chunk) => {
@@ -288,12 +290,12 @@ var getGameData = (onSuccess, onFailure = nothingOnFailure) => {
     logger.error(`problem with request: ${e.message}`);
   });
 
-  req.write("");
+  req.write('');
   req.end();
 };
 
 // ensure that the bot disconnects immediately
-onExit(function (code, signal) {
+onExit(function () {
   logger.info('Shutting process down...');
   bot.disconnect();
 });
