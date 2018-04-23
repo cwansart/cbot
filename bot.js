@@ -21,8 +21,6 @@ const playerIdKeys = Object.keys(map).join('_');
 let whoWasLast = null;
 let lastPostDate = new Date();
 let checkInterval = null;
-let timeInterval = null;
-let timeExponent = null;
 let roundStarted = null;
 
 // Extend the Date prototype
@@ -77,38 +75,6 @@ bot.on('ready', function () {
     });
   }, (oneMinute * config.checkInterval));
   logger.info('Start periodical time check');
-
-  // Send message every 2^x hours (1, 2, 4, 8, ...)
-  timeInterval = setInterval(function () {
-    if (timeExponent !== null) {
-      // Calculate difference since last round
-      const now = new Date();
-      let lastRound = new Date(roundStarted);
-      lastRound.addHours(1);
-      const diff = new DateDiff(now, lastRound);
-
-      // Increase timeExponent if difference bigger than 2^timeExponent. Used mainly at the start
-      if (diff.hours() > Math.pow(2, timeExponent+1)) {
-        timeExponent += 1;
-      } else {
-        // Check if next message should be displayed
-        if (diff.hours() >= Math.pow(2, timeExponent)) {
-          let time = ``;
-          // Set correct time phrase
-          if (diff.hours() >= 2) {
-            time = `${Math.pow(2, timeExponent)} Stunden`;
-          } else {
-            time = `1 Stunde`;
-          }
-          timeExponent += 1;
-          bot.sendMessage({
-            to: config.channelId,
-            message: `Die letzte Runde ist über **${time}** her und <@${map[whoWasLast]}> hat immer noch nicht gespielt... ¯\\\_(ツ)_/¯`
-          });
-        }
-      }
-    }
-  }, oneMinute);
 });
 
 bot.on('message', function (user, userId, channelId, message) {
@@ -245,9 +211,7 @@ bot.on('message', function (user, userId, channelId, message) {
 bot.on('disconnect', function(erMsg, code) {
   logger.warn(`Bot has been disconnected at ${new Date()}: ${erMsg} (${code})`);
   clearInterval(checkInterval);
-  clearInterval(timeInterval);
   checkInterval = null;
-  timeInterval = null;
   bot.connect();
 });
 
