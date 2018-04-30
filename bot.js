@@ -160,7 +160,7 @@ bot.on('message', function (user, userId, channelId, message) {
         let lastRound = new Date(roundStarted);
         logger.info(`lastRound: ${lastRound}`);
         let message = `Es ist ${dateFormat(now, 'H:MM')}. :-)`;
-        lastRound.addHours(1);
+        lastRound.addHours(2);
         let diff = new DateDiff(now, lastRound);
         
         let time = ``;
