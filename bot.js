@@ -66,7 +66,6 @@ bot.on('ready', function () {
 
       if (currentPlayer !== whoWasLast || diff.hours() >= 1) {
         whoWasLast = currentPlayer;
-        timeExponent = 0;
         bot.sendMessage({
           to: config.channelId,
           message: `<@${map[currentPlayer]}> ist am Zug!`
@@ -74,7 +73,6 @@ bot.on('ready', function () {
       }
     });
   }, (oneMinute * config.checkInterval));
-  logger.info('Start periodical time check');
 });
 
 bot.on('message', function (user, userId, channelId, message) {
