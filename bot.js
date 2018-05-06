@@ -13,6 +13,7 @@ const auth = require('./auth.json');
 const config = require('./config.json');
 const jokes = require('./jokes.json');
 const map = require('./map.json');
+const notificationPrefixes = require('./notification-prefix.json');
 
 // global constants
 const playerIdKeys = Object.keys(map).join('_');
@@ -68,7 +69,7 @@ bot.on('ready', function () {
         whoWasLast = currentPlayer;
         bot.sendMessage({
           to: config.channelId,
-          message: `<@${map[currentPlayer]}> ist am Zug!`
+          message: getTurnMessage(currentPlayer)
         });
       }
     });
@@ -139,9 +140,10 @@ bot.on('message', function (user, userId, channelId, message) {
         getGameData((currentPlayer, started) => {
           roundStarted = started;
           whoWasLast = currentPlayer;
+
           bot.sendMessage({
             to: channelId,
-            message: `<@${map[currentPlayer]}> ist am Zug!`
+            message: getTurnMessage(currentPlayer)
           });
         }, () => {
           bot.sendMessage({
@@ -251,6 +253,11 @@ const getGameData = (onSuccess, onFailure) => {
 
   req.write('');
   req.end();
+};
+
+const getTurnMessage = (currentPlayer) => {
+  const prefix = notificationPrefixes[currentPlayer] || '';
+  return `<@${map[currentPlayer]}> ist am Zug! ${prefix}`;
 };
 
 // ensure that the bot disconnects immediately
