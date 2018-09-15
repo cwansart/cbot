@@ -7,6 +7,7 @@ const Discord = require('discord.io');
 const http = require('http');
 const logger = require('winston');
 const onExit = require('signal-exit');
+const fs = require('fs');
 
 // file includes
 const auth = require('./auth.json');
@@ -47,11 +48,13 @@ let bot = new Discord.Client({
 });
 
 bot.on('ready', function () {
-  bot.setPresence({game: {name: 'mit deiner Mutter'}});
+  bot.setPresence({game: {name: 'CiV'}});
 
   logger.info('Connected');
   logger.info('Logged in as: ');
   logger.info(bot.username + ' - (' + bot.id + ')');
+
+  whoWasLast = restoreLastPlayer();
 
   logger.info('Start periodical check');
   const oneMinute = 60000;
@@ -65,8 +68,9 @@ bot.on('ready', function () {
         lastPostDate = now;
       }
 
-      if (currentPlayer !== whoWasLast || diff.hours() >= 1) {
+      if (currentPlayer !== whoWasLast) {
         whoWasLast = currentPlayer;
+        saveLastPlayer(whoWasLast);
         bot.sendMessage({
           to: config.channelId,
           message: getTurnMessage(currentPlayer)
@@ -148,7 +152,8 @@ bot.on('message', function (user, userId, channelId, message) {
         }, () => {
           bot.sendMessage({
             to: channelId,
-            message: 'Meh... Da hat was nicht hingehauen :('
+            message: 'https://giphy.com/gifs/colin-farrell-i-dont-know-XeXzWgD6P4LG8'
+            //message: 'Meh... Da hat was nicht hingehauen :('
           });
         });
         break;
@@ -164,13 +169,18 @@ bot.on('message', function (user, userId, channelId, message) {
         let diff = new DateDiff(now, lastRound);
         
         let time = ``;
-        let hours = Math.floor(diff.hours());
-        let minutes = Math.floor(diff.minutes() - (hours * 60));
-        if (minutes < 0) {
-          minutes = 0;
-        }
+        let days = Math.floor(diff.days());
+        let hours = Math.floor(diff.hours() - (days * 24));
+        let minutes = Math.floor(diff.minutes() - (hours * 60) - (days * 24 * 60));
+        if (hours < 0) hours = 0;
+        if (minutes < 0) minutes = 0;
         
         // Set time string to correct local phrase
+        if (days === 1) {
+          time += '1 Tag, '
+        } else if (days > 1) {
+          time += `${days} Tage `;
+        }
         if (hours === 1) {
           time += '1 Stunde';
         } else if (hours > 1) {
@@ -238,6 +248,7 @@ const getGameData = (onSuccess, onFailure) => {
 
       try {
         const response = JSON.parse(data.join(''));
+        logger.debug(`response: ${data}`);
         onSuccess(response.Games[0].CurrentTurn.UserId, response.Games[0].CurrentTurn.Started);
       } catch(e) {
         if (onFailure instanceof Function) {
@@ -258,6 +269,25 @@ const getGameData = (onSuccess, onFailure) => {
 const getTurnMessage = (currentPlayer) => {
   const prefix = notificationPrefixes[currentPlayer] || '';
   return `<@${map[currentPlayer]}> ist am Zug! ${prefix}`;
+};
+
+const saveLastPlayer = (lastPlayer) => {
+  fs.writeFile('lastPlayer.save', lastPlayer, 'utf8', function (err,data) {
+    if (err) {
+      logger.error(`Error in saveLastPlayer: ${err.message}`);
+    }
+  });
+};
+
+const restoreLastPlayer = () => {
+  fs.readFile('lastPlayer.save', 'utf8', function (err,data) {
+    if (err) {
+          logger.error(`Error in restoreLastPlayer: ${err.message}`);
+          return null;
+        }
+    // console.log(data);
+    return data;
+  });
 };
 
 // ensure that the bot disconnects immediately
