@@ -215,7 +215,7 @@ bot.on('message', function (user, userId, channelId, message) {
         break;
       }
     }
-  }
+  } 
 });
 
 bot.on('disconnect', function(erMsg, code) {
